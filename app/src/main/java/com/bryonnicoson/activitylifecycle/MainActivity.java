@@ -1,6 +1,7 @@
 package com.bryonnicoson.activitylifecycle;
 
 import android.content.Intent;
+import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -27,9 +28,42 @@ public class MainActivity extends AppCompatActivity {
         Log.d(LOG_TAG, "-------");
         Log.d(LOG_TAG, "onCreate");
 
+        // initialize view variables
         mReplyHeadTextView = findViewById(R.id.text_header_reply);
         mReplyTextView = findViewById(R.id.text_message_reply);
         mMessageEditText = findViewById(R.id.editText_main);
+
+        // restore saved state
+        if (savedInstanceState != null) {
+            boolean isVisible = savedInstanceState.getBoolean("reply_visible");
+            if (isVisible) {
+                mReplyHeadTextView.setVisibility(View.VISIBLE);
+                mReplyTextView.setText(savedInstanceState.getString("reply_text"));
+                mReplyTextView.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
+    public void launchSecondActivity(View view) {
+        Log.d(LOG_TAG, "Button clicked");
+        String message = mMessageEditText.getText().toString();
+        Intent intent = new Intent(this, SecondActivity.class);
+        intent.putExtra(EXTRA_MESSAGE, message);
+        startActivityForResult(intent, TEXT_REQUEST);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == TEXT_REQUEST) {
+            if (resultCode == RESULT_OK) {
+                String reply = data.getStringExtra(SecondActivity.EXTRA_REPLY);
+                mReplyHeadTextView.setVisibility(View.VISIBLE);
+                mReplyTextView.setText(reply);
+                mReplyTextView.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     @Override
@@ -68,25 +102,18 @@ public class MainActivity extends AppCompatActivity {
         Log.d(LOG_TAG, "onDestroy");
     }
 
-    public void launchSecondActivity(View view) {
-        Log.d(LOG_TAG, "Button clicked");
-        String message = mMessageEditText.getText().toString();
-        Intent intent = new Intent(this, SecondActivity.class);
-        intent.putExtra(EXTRA_MESSAGE, message);
-        startActivityForResult(intent, TEXT_REQUEST);
-    }
-
+    /**
+     * Save the instance state if the activity is restarted (e.g. on device rotation)
+     * @param outState  The state data
+     */
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
 
-        if (requestCode == TEXT_REQUEST) {
-            if (resultCode == RESULT_OK) {
-             String reply = data.getStringExtra(SecondActivity.EXTRA_REPLY);
-             mReplyHeadTextView.setVisibility(View.VISIBLE);
-             mReplyTextView.setText(reply);
-             mReplyTextView.setVisibility(View.VISIBLE);
-            }
+        // if the heading is visible, a message needs to be saved
+        if (mReplyHeadTextView.getVisibility() == View.VISIBLE) {
+            outState.putBoolean("reply_visible", true);
+            outState.putString("reply_text", mReplyTextView.getText().toString());
         }
     }
 }
